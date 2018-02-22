@@ -1,6 +1,6 @@
-# qubole_test
+# Qubole Task
 
-> Testing upload module
+> CSV parsing
 
 ## Build Setup
 
