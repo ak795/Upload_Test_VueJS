@@ -32,12 +32,11 @@
         single-line v-model="filename" 
         :label="label" :required="required" 
         @click.native="onFocus" 
-        :disabled="disabled" ref="fileTextField"
+        :disabled="!checkbox" ref="fileTextField"
         ></v-text-field>
         <input type="file" 
         accept=".csv" 
         :multiple="false" 
-        :disabled="disabled" 
         ref="fileInput" 
         @change="onFileChange"
       >     
@@ -49,16 +48,30 @@
        
     </div>
 
+    <div v-if="onSubmit">
+      <file-upload-data 
+      :name="name" 
+      :contact="tel" 
+      :licenseNumber="licenseNumber" 
+      :carModel="carModel" 
+      />
+    </div>
+
     </v-app>
   </div>
 </template>
 
 <script>
+import FileUploadData from './FileUploadData.vue';
 export default {
   name: 'app',
+  components: {
+    FileUploadData
+  },
   data() {
     return {
       valid: true,
+      onSubmit: false,
       filename: '',
       checkbox: false,
       name: '',
@@ -110,20 +123,23 @@ export default {
   },
   methods: {
     submit() {
-
+      this.onSubmit = true;
     },
     clear() {
-
+      this.name = '';
+      this.tel = '';
+      this.licenseNumber = '';
+      this.carModel = '';
     },
     disableAllFields() {
-      if(this.checkbox) {
+      if (this.checkbox) {
         this.isDisabled = !this.isDisabled;
       }
     },
     getFormData(files) {
       const data = new FormData();
       [...files].forEach(file => {
-        data.append('data', file, file.name); 
+        data.append('data', file, file.name);
       });
       return data;
     },
@@ -135,6 +151,7 @@ export default {
     onFileChange($event) {
       const files = $event.target.files || $event.dataTransfer.files;
       const form = this.getFormData(files);
+      this.getAsText(files[0]);
       if (files) {
         if (files.length > 0) {
           this.filename = [...files].map(file => file.name).join(', ');
@@ -146,6 +163,41 @@ export default {
       }
       this.$emit('input', this.filename);
       this.$emit('formData', form);
+    },
+    handleFiles(files) {
+      if (window.FileReader) {
+        getAsText(files[0]);
+      } else {
+        alert('FileReader are not supported in this browser.');
+      }
+    },
+    // HTML 5 API reader uses Async reading 
+    getAsText(fileToRead) {
+      var reader = new FileReader();
+      reader.onload = this.loadHandler;
+      reader.onerror = this.errorHandler;
+      reader.readAsText(fileToRead);
+    },
+    loadHandler(event) {
+      var csv = event.target.result;
+      this.processData(csv);
+    },
+    errorHandler(evt) {
+      if (evt.target.error.name == "NotReadableError") {
+        alert("Canno't read file !");
+      }
+    },
+    processData(csv) {
+      var allTextLines = csv.split(/\r\n|\n/);
+      var lines = [];
+      while (allTextLines.length) {
+        lines.push(allTextLines.shift().split(','));
+      }
+      console.log(lines);
+       this.name = lines[0][0];
+       this.tel =  lines[0][1];
+       this.licenseNumber = lines[0][2];
+       this.carModel = lines[0][3];
     }
   }
 }
@@ -181,7 +233,7 @@ a {
 }
 
 input[type=file] {
-    position: absolute;
-    left: -99999px;
+  position: absolute;
+  left: -99999px;
 }
 </style>
